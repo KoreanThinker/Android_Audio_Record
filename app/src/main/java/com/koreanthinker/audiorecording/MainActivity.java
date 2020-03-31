@@ -2,23 +2,20 @@ package com.koreanthinker.audiorecording;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
-import android.nfc.Tag;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
 
-import java.io.DataInput;
 import java.io.DataInputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -51,12 +48,30 @@ public class MainActivity extends Activity {
 
     public String mFilePath = null;
 
-
+    public Intent foregroundServiceIntent = null;
+    private Button btnStartService, btnStopService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        btnStartService = findViewById(R.id.buttonStartService);
+        btnStopService = findViewById(R.id.buttonStopService);
+        btnStartService.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startService();
+            }
+        });
+        btnStopService.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopService();
+            }
+        });
+
+
 
         permissionCheck();
         mBtRecord = (Button)findViewById(R.id.startRecord);
@@ -70,6 +85,8 @@ public class MainActivity extends Activity {
         mRecordThread = new Thread(new Runnable() {
             @Override
             public void run() {
+                long startTime = System.currentTimeMillis();
+
                 byte[] readData = new byte[mBufferSize];
                 mFilePath = Environment.getExternalStorageDirectory().getAbsolutePath() +"/record3.pcm";
                 FileOutputStream fos = null;
@@ -89,7 +106,6 @@ public class MainActivity extends Activity {
                     Log.d(TAG, ""+ readData);
 
                     try {
-                        Log.d(TAG,  fos == null ? "널" : "정상");
                         fos.write(readData, 0, mBufferSize);
                     }catch (IOException e){
                         e.printStackTrace();
@@ -99,6 +115,9 @@ public class MainActivity extends Activity {
                 mAudioRecord.stop();
                 mAudioRecord.release();
                 mAudioRecord = null;
+                long endTime =  System.currentTimeMillis();
+
+                Log.d(TAG, "" + (endTime- startTime));
 
                 try {
                     fos.close();
@@ -176,6 +195,7 @@ public class MainActivity extends Activity {
                 mAudioRecord =  new AudioRecord(mAudioSource, mSampleRate, mChannelCount, mAudioFormat, mBufferSize);
                 mAudioRecord.startRecording();
             }
+            Log.d(TAG, mRecordThread == null ? "널" : "정상");
             mRecordThread.start();
         }
 
@@ -196,6 +216,25 @@ public class MainActivity extends Activity {
             mPlayThread.start();
         }
 
+    }
+
+    public void startService() {
+        Intent serviceIntent = new Intent(this, ForeGroundService.class);
+        serviceIntent.putExtra("inputExtra", "Foreground Service Example in Android");
+        ContextCompat.startForegroundService(this, serviceIntent);
+    }
+    public void stopService() {
+        Intent serviceIntent = new Intent(this, ForeGroundService.class);
+        stopService(serviceIntent);
+    }
+        @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (null != foregroundServiceIntent) {
+            stopService(foregroundServiceIntent);
+            Log.d(TAG, "DESTORY");
+            foregroundServiceIntent = null;
+        }
     }
 
 }
