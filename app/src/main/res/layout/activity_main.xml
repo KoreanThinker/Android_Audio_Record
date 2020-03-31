@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    android:orientation="vertical"
+    >
+    <Button
+        android:id="@+id/startRecord"
+        android:layout_width="200dp"
+        android:layout_height="100dp"
+        android:text="녹음 시작"
+        android:textSize="24dp"
+        android:gravity="center"
+        android:onClick="onRecord"
+        android:background="@color/colorPrimary"
+        />
+
+    <Button
+        android:id="@+id/playBtn"
+        android:layout_width="200dp"
+        android:layout_height="100dp"
+        android:text="재생"
+        android:textSize="24dp"
+        android:onClick="onPlay"
+        android:gravity="center"
+        android:background="@color/colorAccent"
+        />
+
+
+
+</LinearLayout>
