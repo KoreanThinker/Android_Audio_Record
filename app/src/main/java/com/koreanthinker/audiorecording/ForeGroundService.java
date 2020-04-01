@@ -1,26 +1,20 @@
 package com.koreanthinker.audiorecording;
 
-import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
-import android.util.Log;
-
-import java.util.Calendar;
-
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 public class ForeGroundService extends Service {
     private static final String TAG = "MainActivity";
-    public static final String CHANNEL_ID = "ForegroundServiceChannel";
+    public static final String CHANNEL_ID = "RecordingForegroundServiceChannel";
+    public RecordManager RM = null;
 
     @Override
     public void onCreate() {
@@ -29,25 +23,29 @@ public class ForeGroundService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        String input = intent.getStringExtra("inputExtra");
+//        String input = intent.getStringExtra("inputExtra"); //props 개념
         createNotificationChannel();
         Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                0, notificationIntent, 0);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0); // activity 유지
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Foreground Service")
-                .setContentText(input)
+                .setContentText("Tab to save last 30min")
                 .setSmallIcon(R.drawable.ic_launcher_background)
                 .setContentIntent(pendingIntent)
                 .build();
+
         startForeground(1, notification);
-        //do heavy work on a background thread
-        //stopSelf();
+        //쓰레드 동작 시작
+        RM = new RecordManager(this);
+        RM.onRecord();
         return START_NOT_STICKY;
     }
 
+
     @Override
-    public void onDestroy() {
+    public void onDestroy()
+    {
+//        RM.onStop();
+        RM.onStop();
         super.onDestroy();
     }
 
@@ -61,7 +59,7 @@ public class ForeGroundService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel serviceChannel = new NotificationChannel(
                     CHANNEL_ID,
-                    "Foreground Service Channel",
+                    "Recording Foreground Service Channel",
                     NotificationManager.IMPORTANCE_DEFAULT
             );
             NotificationManager manager = getSystemService(NotificationManager.class);
