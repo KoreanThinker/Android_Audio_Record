@@ -5,16 +5,24 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.Looper;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.widget.Button;
+
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 public class ForeGroundService extends Service {
     private static final String TAG = "MainActivity";
+
     public static final String CHANNEL_ID = "RecordingForegroundServiceChannel";
-    public RecordManager RM = null;
+    public static RecordManager RM = null;
+    public Button startRecordBtn, stopRecordBtn, saveRecordBtn;
 
     @Override
     public void onCreate() {
@@ -28,7 +36,9 @@ public class ForeGroundService extends Service {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0); // activity 유지
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentText("Tab to save last 30min")
+                .setContentText("Save last 10 min")
+                .addAction(R.drawable.ic_launcher_foreground, "save",pendingIntent)
+                .addAction(R.drawable.ic_launcher_foreground, "other",pendingIntent)
                 .setSmallIcon(R.drawable.ic_launcher_background)
                 .setContentIntent(pendingIntent)
                 .build();
@@ -36,7 +46,8 @@ public class ForeGroundService extends Service {
         startForeground(1, notification);
         //쓰레드 동작 시작
         RM = new RecordManager(this);
-        RM.onRecord();
+//        RM.onRecord();
+
         return START_NOT_STICKY;
     }
 
@@ -44,7 +55,7 @@ public class ForeGroundService extends Service {
     @Override
     public void onDestroy()
     {
-//        RM.onStop();
+        Log.d(TAG, "destory recording");
         RM.onStop();
         super.onDestroy();
     }

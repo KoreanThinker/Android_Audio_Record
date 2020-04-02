@@ -16,30 +16,44 @@ public class MainActivity extends Activity {
 
     private static final String TAG = "MainActivity";
 
-
-
     public Intent foregroundServiceIntent = null;
-    private Button btnStartService, btnStopService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        btnStartService = findViewById(R.id.buttonStartService);
-        btnStopService = findViewById(R.id.buttonStopService);
-        btnStartService.setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.buttonStartService).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startService();
             }
         });
-        btnStopService.setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.buttonStopService).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 stopService();
             }
         });
+        findViewById(R.id.startRecordBtn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startRecording();
+            }
+        });
+        findViewById(R.id.stopRecordBtn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopRecording();
+            }
+        });
+        findViewById(R.id.saveRecordBtn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                saveRecording();
+            }
+        });
+
     }
     public void permissionCheck(){
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
@@ -58,6 +72,17 @@ public class MainActivity extends Activity {
     public void stopService() {
         Intent serviceIntent = new Intent(this, ForeGroundService.class);
         stopService(serviceIntent);
+    }
+
+    public void startRecording() {
+        ForeGroundService.RM.onRecord();
+    }
+    public void stopRecording() {
+        ForeGroundService.RM.onStop();
+    }
+
+    public void saveRecording() {
+        ForeGroundService.RM.onSave();
     }
 
     @Override

@@ -17,7 +17,7 @@ import java.io.IOException;
 public class RecordManager {
 
     private static final String TAG = "MainActivity";
-    private static final long MAX_TIME = 1800;
+    private static final long MAX_TIME = 18000;
     private final String FILE_PATH_1 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/24hourRecordTemp1.pcm";
     private final String FILE_PATH_2 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/24hourRecordTemp2.pcm";
     private final String SAVE_PATH = Environment.getExternalStorageDirectory().getAbsolutePath() + "/24hourRecordSave";
@@ -35,108 +35,120 @@ public class RecordManager {
     private boolean isRecording = false;
     private String currentPath = null;
 
+    private FileOutputStream fos = null;
+    private long startTime = -1;
+
     RecordManager(Context context) {
         this.context = context;
+        Log.d(TAG, "init recording");
+    }
 
-        mAudioRecord = new AudioRecord(mAudioSource, mSampleRate, mChannelCount, mAudioFormat, mBufferSize);
-        mAudioRecord.startRecording();
+    private void threadProcess() {
+        Log.d(TAG, "start thread");
+        byte[] readData = new byte[mBufferSize];
+//                완전 처음
+        if (fos == null) {
+            try {
+                Log.d(TAG, "fos init");
+                startTime = System.currentTimeMillis();
+                currentPath = currentPath == null ? FILE_PATH_1 : currentPath;
+                fos = new FileOutputStream(FILE_PATH_1);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
 
-        mRecordThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                long startTime = System.currentTimeMillis();
-                byte[] readData = new byte[mBufferSize];
-                FileOutputStream fos = null;
-                //fos 선언
-                try {
-                    currentPath = FILE_PATH_1;
-                    fos = new FileOutputStream(FILE_PATH_1);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-
-                while (isRecording) {
-                    //최대 시간 초과시 fos 스위치
-                    long currentTime = System.currentTimeMillis() - startTime;
-                    if (currentTime > MAX_TIME) {
-                        //fos 삭제하기 위해 닫기
-                        try {
-                            fos.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            Log.d(TAG, e.getMessage());
-                        }
-
-                        //주소 변경
-                        if (currentPath == FILE_PATH_1) {
-                            currentPath = FILE_PATH_2;
-                        } else {
-                            currentPath = FILE_PATH_1;
-                        }
-
-                        //앞으로 사용할 주소 초기화
-                        File file = new File(currentPath);
-                        if (file.exists()) {
-                            if (!file.delete()) {
-                                ErrorAndStop();
-                            }
-                        }
-
-                        // 새로운 주소로 fos 등록
-                        try {
-                            fos = new FileOutputStream(currentPath);
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
-                            Log.d(TAG, e.getMessage());
-                        }
-
-                        //시간 초기화
-                        startTime = System.currentTimeMillis();
-                    }
-                    // 소리 읽고 pcm에 쓰기
-                    int ret = mAudioRecord.read(readData, 0, mBufferSize);
-                    Log.d(TAG, currentPath);
-                    try {
-                        fos.write(readData, 0, mBufferSize);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (NullPointerException e) {
-                        ErrorAndStop();
-                    }
-
-                }
-
-                mAudioRecord.stop();
-                mAudioRecord.release();
-                mAudioRecord = null;
-
+        while (isRecording) {
+            //최대 시간 초과시 fos 스위치
+            long currentTime = System.currentTimeMillis() - startTime;
+            if (currentTime > MAX_TIME) {
+                //fos 삭제하기 위해 닫기
                 try {
                     fos.close();
                 } catch (IOException e) {
                     e.printStackTrace();
+                    Log.d(TAG, e.getMessage());
                 }
+
+                //주소 변경
+                if (currentPath == FILE_PATH_1) {
+                    currentPath = FILE_PATH_2;
+                } else {
+                    currentPath = FILE_PATH_1;
+                }
+
+                //앞으로 사용할 주소 초기화
+                File file = new File(currentPath);
+                if (file.exists()) {
+                    if (!file.delete()) {
+                        ErrorAndStop();
+                    }
+                }
+
+                // 새로운 주소로 fos 등록
+                try {
+                    fos = new FileOutputStream(currentPath);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                    Log.d(TAG, e.getMessage());
+                }
+
+                //시간 초기화
+                startTime = System.currentTimeMillis();
             }
-        });
+            // 소리 읽고 pcm에 쓰기
+            int ret = mAudioRecord.read(readData, 0, mBufferSize);
+            try {
+                fos.write(readData, 0, mBufferSize);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (NullPointerException e) {
+                ErrorAndStop();
+            }
+
+        }
+
+        mAudioRecord.stop();
+        mAudioRecord.release();
+        mAudioRecord = null;
+
+        try {
+            fos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Log.d(TAG, "stop thread");
     }
 
 
     public void onRecord() {
         if (isRecording) return;
         isRecording = true;
-        if (mAudioRecord == null) {
-            mAudioRecord = new AudioRecord(mAudioSource, mSampleRate, mChannelCount, mAudioFormat, mBufferSize);
-        }
+        mAudioRecord = new AudioRecord(mAudioSource, mSampleRate, mChannelCount, mAudioFormat, mBufferSize);
         mAudioRecord.startRecording();
+        mRecordThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                threadProcess();
+            }
+        });
         mRecordThread.start();
+        Log.d(TAG, "start recording");
     }
 
     public void onStop() {
+        if(!isRecording) return;
         isRecording = false;
         mAudioRecord.stop();
+        Log.d(TAG, "stop recording");
+    }
+
+    public void reSet() {
+        fos = null;
     }
 
     public void onSave() {
-
+        Log.d(TAG, "save recording");
     }
 
     public void ErrorAndStop() {

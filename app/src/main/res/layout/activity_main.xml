@@ -8,23 +8,30 @@
     android:orientation="vertical"
     >
     <Button
-        android:id="@+id/startRecord"
+        android:id="@+id/startRecordBtn"
         android:layout_width="200dp"
         android:layout_height="100dp"
         android:text="녹음 시작"
         android:textSize="24dp"
         android:gravity="center"
-        android:onClick="onRecord"
         android:background="@color/colorPrimary"
         />
 
     <Button
-        android:id="@+id/playBtn"
+        android:id="@+id/stopRecordBtn"
         android:layout_width="200dp"
         android:layout_height="100dp"
-        android:text="재생"
+        android:text="녹음중지"
         android:textSize="24dp"
-        android:onClick="onPlay"
+        android:gravity="center"
+        android:background="@color/colorAccent"
+        />
+    <Button
+        android:id="@+id/saveRecordBtn"
+        android:layout_width="200dp"
+        android:layout_height="100dp"
+        android:text="저장"
+        android:textSize="24dp"
         android:gravity="center"
         android:background="@color/colorAccent"
         />
@@ -44,6 +51,7 @@
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="20dp"
         app:layout_constraintVertical_chainStyle="packed" />
     <Button
         android:id="@+id/buttonStopService"
