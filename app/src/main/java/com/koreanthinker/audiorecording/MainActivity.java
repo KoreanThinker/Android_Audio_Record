@@ -22,7 +22,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         findViewById(R.id.buttonStartService).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -53,6 +52,18 @@ public class MainActivity extends Activity {
                 saveRecording();
             }
         });
+        findViewById(R.id.buttonPlaySound).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                playSound();
+            }
+        });
+        findViewById(R.id.buttonStopSound).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopSound();
+            }
+        });
 
     }
     public void permissionCheck(){
@@ -80,7 +91,12 @@ public class MainActivity extends Activity {
     public void stopRecording() {
         ForeGroundService.RM.onStop();
     }
-
+    public void playSound() {
+        ForeGroundService.RM.onPlaySound();
+    }
+    public void stopSound() {
+        ForeGroundService.RM.onStopSound();
+    }
     public void saveRecording() {
         ForeGroundService.RM.onSave();
     }

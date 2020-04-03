@@ -18,14 +18,15 @@ public class RecordManager {
 
     private static final String TAG = "MainActivity";
     private static final long MAX_TIME = 18000;
-    private final String FILE_PATH_1 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/24hourRecordTemp1.pcm";
-    private final String FILE_PATH_2 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/24hourRecordTemp2.pcm";
-    private final String SAVE_PATH = Environment.getExternalStorageDirectory().getAbsolutePath() + "/24hourRecordSave";
+    private File ROOT_FILE;
+    private String FILE_PATH_1;
+    private String FILE_PATH_2;
+    private String SAVE_PATH;
 
-    private Context context = null;
+    private Context context;
 
     private int mAudioSource = MediaRecorder.AudioSource.MIC;
-    private int mSampleRate = 44100;
+    private int mSampleRate = 16000;
     private int mChannelCount = AudioFormat.CHANNEL_IN_STEREO;
     private int mAudioFormat = AudioFormat.ENCODING_PCM_16BIT;
     private int mBufferSize = AudioTrack.getMinBufferSize(mSampleRate, mChannelCount, mAudioFormat);
@@ -38,15 +39,33 @@ public class RecordManager {
     private FileOutputStream fos = null;
     private long startTime = -1;
 
+    private SoundPlayer SP;
+    private String lastSavePath;
+
     RecordManager(Context context) {
         this.context = context;
         Log.d(TAG, "init recording");
+
+        //soundplayer 설정
+        SP = new SoundPlayer();
+        //sd카드 확인
+        String sdcard = Environment.getExternalStorageState();
+        if (!sdcard.equals(Environment.MEDIA_MOUNTED)) {
+            // SD카드가 마운트되어있지 않음
+            ROOT_FILE = Environment.getRootDirectory();
+        } else {
+            // SD카드가 마운트되어있음
+            ROOT_FILE = Environment.getExternalStorageDirectory();
+        }
+        FILE_PATH_1 = ROOT_FILE.getAbsolutePath() + "/24hourRecordTemp1.pcm";
+        FILE_PATH_2 = ROOT_FILE.getAbsolutePath() + "/24hourRecordTemp2.pcm";
+        SAVE_PATH = ROOT_FILE.getAbsolutePath() + "/24hourRecordSave";
     }
 
     private void threadProcess() {
         Log.d(TAG, "start thread");
         byte[] readData = new byte[mBufferSize];
-//                완전 처음
+        Log.d(TAG, fos == null ? "FOS = null" : "FOS != null");
         if (fos == null) {
             try {
                 Log.d(TAG, "fos init");
@@ -57,6 +76,8 @@ public class RecordManager {
                 e.printStackTrace();
             }
         }
+
+        int cnt = 0;
 
         while (isRecording) {
             //최대 시간 초과시 fos 스위치
@@ -98,8 +119,13 @@ public class RecordManager {
             }
             // 소리 읽고 pcm에 쓰기
             int ret = mAudioRecord.read(readData, 0, mBufferSize);
+//            Log.d(TAG, "" + currentTime + " : " + cnt + " : " + ret);
+            Log.d(TAG, ""+ret);
+//            cnt++;
+
             try {
                 fos.write(readData, 0, mBufferSize);
+
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (NullPointerException e) {
@@ -137,18 +163,46 @@ public class RecordManager {
     }
 
     public void onStop() {
-        if(!isRecording) return;
+        if (!isRecording) return;
         isRecording = false;
         mAudioRecord.stop();
         Log.d(TAG, "stop recording");
     }
 
-    public void reSet() {
+    public void reset() {
         fos = null;
     }
 
     public void onSave() {
         Log.d(TAG, "save recording");
+        long date = System.currentTimeMillis();
+        Log.d(TAG, FILE_PATH_1);
+        Log.d(TAG, SAVE_PATH);
+        File f1 = new File(FILE_PATH_1); // The location of your PCM file
+        lastSavePath = SAVE_PATH + "/" + "recordFile" + date + ".wav";
+        File f2 = new File(lastSavePath); // The location where you want your WAV file
+        File savePath = new File(SAVE_PATH);
+
+
+        if (!savePath.exists()) {
+            savePath.mkdirs();
+        }
+        try {
+            new PcmToWave(f1, f2, mSampleRate);
+
+            Log.d(TAG, "SAVE SUCCESS");
+        } catch (IOException e) {
+            Log.d(TAG, e.toString());
+            e.printStackTrace();
+        }
+    }
+
+    public void onPlaySound() {
+        SP.Play(FILE_PATH_1, mBufferSize, mSampleRate, mChannelCount, mAudioFormat);
+    }
+
+    public void onStopSound() {
+        SP.Stop();
     }
 
     public void ErrorAndStop() {
