@@ -17,7 +17,7 @@ import java.io.IOException;
 public class RecordManager {
 
     private static final String TAG = "MainActivity";
-    private static final long MAX_TIME = 18000;
+    private static final long MAX_TIME = 5000;
     private File ROOT_FILE;
     private String FILE_PATH_1;
     private String FILE_PATH_2;
@@ -60,6 +60,9 @@ public class RecordManager {
         FILE_PATH_1 = ROOT_FILE.getAbsolutePath() + "/24hourRecordTemp1.pcm";
         FILE_PATH_2 = ROOT_FILE.getAbsolutePath() + "/24hourRecordTemp2.pcm";
         SAVE_PATH = ROOT_FILE.getAbsolutePath() + "/24hourRecordSave";
+
+        removeFile(FILE_PATH_1);
+        removeFile(FILE_PATH_2);
     }
 
     private void threadProcess() {
@@ -77,7 +80,6 @@ public class RecordManager {
             }
         }
 
-        int cnt = 0;
 
         while (isRecording) {
             //최대 시간 초과시 fos 스위치
@@ -116,16 +118,14 @@ public class RecordManager {
 
                 //시간 초기화
                 startTime = System.currentTimeMillis();
+                Log.d(TAG, "CHANGED");
             }
             // 소리 읽고 pcm에 쓰기
             int ret = mAudioRecord.read(readData, 0, mBufferSize);
-//            Log.d(TAG, "" + currentTime + " : " + cnt + " : " + ret);
-            Log.d(TAG, ""+ret);
-//            cnt++;
+            Log.d(TAG, "" + ret);
 
             try {
                 fos.write(readData, 0, mBufferSize);
-
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (NullPointerException e) {
@@ -178,9 +178,10 @@ public class RecordManager {
         long date = System.currentTimeMillis();
         Log.d(TAG, FILE_PATH_1);
         Log.d(TAG, SAVE_PATH);
-        File f1 = new File(FILE_PATH_1); // The location of your PCM file
+        File f1 = new File(currentPath.equals(FILE_PATH_1) ? FILE_PATH_2 : FILE_PATH_1); // The location of your PCM file
+        File f2 = new File(currentPath.equals(FILE_PATH_1) ? FILE_PATH_1 : FILE_PATH_2);
         lastSavePath = SAVE_PATH + "/" + "recordFile" + date + ".wav";
-        File f2 = new File(lastSavePath); // The location where you want your WAV file
+        File saveFile = new File(lastSavePath); // The location where you want your WAV file
         File savePath = new File(SAVE_PATH);
 
 
@@ -188,7 +189,7 @@ public class RecordManager {
             savePath.mkdirs();
         }
         try {
-            new PcmToWave(f1, f2, mSampleRate);
+            new PcmToWave(f1, f2, saveFile, (int) MAX_TIME, mSampleRate);
 
             Log.d(TAG, "SAVE SUCCESS");
         } catch (IOException e) {
@@ -198,7 +199,7 @@ public class RecordManager {
     }
 
     public void onPlaySound() {
-        SP.Play(FILE_PATH_1, mBufferSize, mSampleRate, mChannelCount, mAudioFormat);
+        SP.Play(lastSavePath, mBufferSize, mSampleRate, mChannelCount, mAudioFormat);
     }
 
     public void onStopSound() {
@@ -208,5 +209,18 @@ public class RecordManager {
     public void ErrorAndStop() {
         Toast.makeText(context, "Recording error try again", Toast.LENGTH_SHORT).show();
         onStop();
+    }
+
+    private void removeFile(String FilePath) {
+        File file = new File(FilePath);
+        if (file.exists()) {
+            if (file.delete()) {
+                Log.d(TAG, "파일삭제");
+            } else {
+                Log.d(TAG, "파일삭제 실패");
+            }
+        } else {
+            Log.d(TAG, "파일 없음");
+        }
     }
 }
