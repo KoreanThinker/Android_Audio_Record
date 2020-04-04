@@ -14,19 +14,26 @@ import java.nio.ByteOrder;
 public class PcmToWave {
     private static final String TAG = "MainActivity";
 
-    PcmToWave(final File rawFile1, final File rawFile2, final File waveFile, int time, int RECORDER_SAMPLERATE) throws IOException {
-        Log.d(TAG, "" + rawFile1.length());
-        Log.d(TAG, "" + rawFile2.length());
-        byte[] rawData = new byte[(int) rawFile1.length() + (int) rawFile2.length()];
+    PcmToWave(final File rawFile1, final File rawFile2, final File waveFile, int time, int RECORDER_SAMPLERATE, int buffer) throws IOException {
+        float unit = 20;
+        Log.d(TAG, rawFile1.getName());
+        Log.d(TAG, rawFile2.getName());
+        int size1 = (int) rawFile1.length();
+        int size2 = (int) rawFile2.length();
+        Log.d(TAG, "" + size1);
+        Log.d(TAG, "" + size2);
+        int totalSize = size1 + size2 > time * buffer * unit ? (int) (time * buffer * unit) : size1 + size2;
+        Log.d(TAG, "" + totalSize);
+        byte[] rawData = new byte[totalSize];
         DataInputStream input = null;
-        try {
-            input = new DataInputStream(new FileInputStream(rawFile1));
-            input.read(rawData);
-        } finally {
-            if (input != null) {
-                input.close();
-            }
-        }
+//        try {
+//            input = new DataInputStream(new FileInputStream(rawFile1));
+//            input.read(rawData);
+//        } finally {
+//            if (input != null) {
+//                input.close();
+//            }
+//        }
 
         DataOutputStream output = null;
         try {
@@ -39,7 +46,7 @@ public class PcmToWave {
             writeString(output, "fmt "); // subchunk 1 id
             writeInt(output, 16); // subchunk 1 size
             writeShort(output, (short) 1); // audio format (1 = PCM)
-            writeShort(output, (short) 1); // number of channels
+            writeShort(output, (short) 2); // number of channels
             writeInt(output, RECORDER_SAMPLERATE); // sample rate
             writeInt(output, RECORDER_SAMPLERATE * 2); // byte rate
             writeShort(output, (short) 2); // block align
@@ -54,7 +61,7 @@ public class PcmToWave {
                 bytes.putShort(s);
             }
 
-            output.write(fullyReadFileToBytes(rawFile1, rawFile2));
+            output.write(fullyReadFileToBytes(rawFile1, rawFile2, size1, size2, totalSize));
         } finally {
             if (output != null) {
                 output.close();
@@ -62,9 +69,7 @@ public class PcmToWave {
         }
     }
 
-    private byte[] fullyReadFileToBytes(File f1, File f2) throws IOException {
-        int size1 = (int) f1.length();
-        int size2 = (int) f2.length();
+    private byte[] fullyReadFileToBytes(File f1, File f2, int size1, int size2, int totalSize) throws IOException {
         byte bytes1[] = new byte[size1];
         byte bytes2[] = new byte[size2];
         FileInputStream fis1 = new FileInputStream(f1);
@@ -78,9 +83,10 @@ public class PcmToWave {
             fis1.close();
             fis2.close();
         }
-        byte bytes[] = new byte[size1 + size2];
-        System.arraycopy(bytes1, 0, bytes, 0, bytes1.length);
-        System.arraycopy(bytes2, 0, bytes, bytes1.length, bytes2.length);
+        byte bytes[] = new byte[totalSize];
+        System.arraycopy(bytes1, size1 + size2 - totalSize, bytes, 0, totalSize - size2);
+        System.arraycopy(bytes2, 0, bytes, totalSize - size2, size2);
+
         return bytes;
     }
 

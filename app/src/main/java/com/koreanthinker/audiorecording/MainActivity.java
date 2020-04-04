@@ -64,6 +64,7 @@ public class MainActivity extends Activity {
                 stopSound();
             }
         });
+        permissionCheck();
 
     }
     public void permissionCheck(){

@@ -53,13 +53,20 @@ public class RecordManager {
         if (!sdcard.equals(Environment.MEDIA_MOUNTED)) {
             // SD카드가 마운트되어있지 않음
             ROOT_FILE = Environment.getRootDirectory();
+            Log.d(TAG, "SD카드 마운트 X");
         } else {
             // SD카드가 마운트되어있음
             ROOT_FILE = Environment.getExternalStorageDirectory();
+            Log.d(TAG, "SD카드 마운트 O");
         }
-        FILE_PATH_1 = ROOT_FILE.getAbsolutePath() + "/24hourRecordTemp1.pcm";
-        FILE_PATH_2 = ROOT_FILE.getAbsolutePath() + "/24hourRecordTemp2.pcm";
         SAVE_PATH = ROOT_FILE.getAbsolutePath() + "/24hourRecordSave";
+        FILE_PATH_1 = SAVE_PATH + "/24hourRecordTemp1.pcm";
+        FILE_PATH_2 = SAVE_PATH + "/24hourRecordTemp2.pcm";
+        File dir= new File(SAVE_PATH);
+        Log.d(TAG, FILE_PATH_1);
+        if (!dir.exists()) {
+            Log.d(TAG, dir.mkdirs() ? "파일 생성 성공" : "파일생성 실패");
+        }
 
         removeFile(FILE_PATH_1);
         removeFile(FILE_PATH_2);
@@ -73,9 +80,13 @@ public class RecordManager {
             try {
                 Log.d(TAG, "fos init");
                 startTime = System.currentTimeMillis();
+                Log.d(TAG, "01");
                 currentPath = currentPath == null ? FILE_PATH_1 : currentPath;
+                Log.d(TAG, currentPath);
                 fos = new FileOutputStream(FILE_PATH_1);
+                Log.d(TAG, "03");
             } catch (FileNotFoundException e) {
+                Log.d(TAG, "04");
                 e.printStackTrace();
             }
         }
@@ -125,10 +136,13 @@ public class RecordManager {
             Log.d(TAG, "" + ret);
 
             try {
+                Log.d(TAG, "1");
                 fos.write(readData, 0, mBufferSize);
+                Log.d(TAG, "2");
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (NullPointerException e) {
+                Log.d(TAG, "3");
                 ErrorAndStop();
             }
 
@@ -176,10 +190,8 @@ public class RecordManager {
     public void onSave() {
         Log.d(TAG, "save recording");
         long date = System.currentTimeMillis();
-        Log.d(TAG, FILE_PATH_1);
-        Log.d(TAG, SAVE_PATH);
-        File f1 = new File(currentPath.equals(FILE_PATH_1) ? FILE_PATH_2 : FILE_PATH_1); // The location of your PCM file
-        File f2 = new File(currentPath.equals(FILE_PATH_1) ? FILE_PATH_1 : FILE_PATH_2);
+        File f1 = new File(currentPath == FILE_PATH_1 ? FILE_PATH_2 : FILE_PATH_1); // The location of your PCM file
+        File f2 = new File(currentPath == FILE_PATH_1 ? FILE_PATH_1 : FILE_PATH_2);
         lastSavePath = SAVE_PATH + "/" + "recordFile" + date + ".wav";
         File saveFile = new File(lastSavePath); // The location where you want your WAV file
         File savePath = new File(SAVE_PATH);
@@ -189,7 +201,7 @@ public class RecordManager {
             savePath.mkdirs();
         }
         try {
-            new PcmToWave(f1, f2, saveFile, (int) MAX_TIME, mSampleRate);
+            new PcmToWave(f1, f2, saveFile, 5, mSampleRate, mBufferSize);
 
             Log.d(TAG, "SAVE SUCCESS");
         } catch (IOException e) {
