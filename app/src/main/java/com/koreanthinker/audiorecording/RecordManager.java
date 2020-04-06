@@ -17,7 +17,7 @@ import java.io.IOException;
 public class RecordManager {
 
     private static final String TAG = "MainActivity";
-    private static final long MAX_TIME = 5000;
+    private static final long MAX_TIME = 20;
     private File ROOT_FILE;
     private String FILE_PATH_1;
     private String FILE_PATH_2;
@@ -26,7 +26,7 @@ public class RecordManager {
     private Context context;
 
     private int mAudioSource = MediaRecorder.AudioSource.MIC;
-    private int mSampleRate = 16000;
+    private int mSampleRate = 44100;
     private int mChannelCount = AudioFormat.CHANNEL_IN_STEREO;
     private int mAudioFormat = AudioFormat.ENCODING_PCM_16BIT;
     private int mBufferSize = AudioTrack.getMinBufferSize(mSampleRate, mChannelCount, mAudioFormat);
@@ -37,10 +37,12 @@ public class RecordManager {
     private String currentPath = null;
 
     private FileOutputStream fos = null;
-    private long startTime = -1;
 
     private SoundPlayer SP;
     private String lastSavePath;
+    private int currentFileByte = 0;
+
+    private final int bytePerSec = mSampleRate * 4;
 
     RecordManager(Context context) {
         this.context = context;
@@ -62,7 +64,7 @@ public class RecordManager {
         SAVE_PATH = ROOT_FILE.getAbsolutePath() + "/24hourRecordSave";
         FILE_PATH_1 = SAVE_PATH + "/24hourRecordTemp1.pcm";
         FILE_PATH_2 = SAVE_PATH + "/24hourRecordTemp2.pcm";
-        File dir= new File(SAVE_PATH);
+        File dir = new File(SAVE_PATH);
         Log.d(TAG, FILE_PATH_1);
         if (!dir.exists()) {
             Log.d(TAG, dir.mkdirs() ? "파일 생성 성공" : "파일생성 실패");
@@ -75,27 +77,21 @@ public class RecordManager {
     private void threadProcess() {
         Log.d(TAG, "start thread");
         byte[] readData = new byte[mBufferSize];
-        Log.d(TAG, fos == null ? "FOS = null" : "FOS != null");
         if (fos == null) {
             try {
-                Log.d(TAG, "fos init");
-                startTime = System.currentTimeMillis();
-                Log.d(TAG, "01");
                 currentPath = currentPath == null ? FILE_PATH_1 : currentPath;
-                Log.d(TAG, currentPath);
                 fos = new FileOutputStream(FILE_PATH_1);
-                Log.d(TAG, "03");
             } catch (FileNotFoundException e) {
-                Log.d(TAG, "04");
                 e.printStackTrace();
             }
         }
-
+        Log.d(TAG, ""+ bytePerSec);
 
         while (isRecording) {
             //최대 시간 초과시 fos 스위치
-            long currentTime = System.currentTimeMillis() - startTime;
-            if (currentTime > MAX_TIME) {
+            if (bytePerSec * MAX_TIME <= currentFileByte) {
+                // 파일 바이트 변수 초기화
+                currentFileByte = 0;
                 //fos 삭제하기 위해 닫기
                 try {
                     fos.close();
@@ -103,7 +99,6 @@ public class RecordManager {
                     e.printStackTrace();
                     Log.d(TAG, e.getMessage());
                 }
-
                 //주소 변경
                 if (currentPath == FILE_PATH_1) {
                     currentPath = FILE_PATH_2;
@@ -127,22 +122,18 @@ public class RecordManager {
                     Log.d(TAG, e.getMessage());
                 }
 
-                //시간 초기화
-                startTime = System.currentTimeMillis();
                 Log.d(TAG, "CHANGED");
             }
             // 소리 읽고 pcm에 쓰기
             int ret = mAudioRecord.read(readData, 0, mBufferSize);
-            Log.d(TAG, "" + ret);
-
+            Log.d(TAG, "" + ret + " : " + mBufferSize + " : " + currentFileByte);
             try {
-                Log.d(TAG, "1");
                 fos.write(readData, 0, mBufferSize);
-                Log.d(TAG, "2");
+                currentFileByte += ret;
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (NullPointerException e) {
-                Log.d(TAG, "3");
+                Log.d(TAG, "THREAD ERROR");
                 ErrorAndStop();
             }
 
@@ -201,8 +192,8 @@ public class RecordManager {
             savePath.mkdirs();
         }
         try {
-            new PcmToWave(f1, f2, saveFile, 5, mSampleRate, mBufferSize);
-
+            // time은 MAX_time 보다 작아야함
+            new PcmToWave(f1, f2, saveFile, 20, mSampleRate, bytePerSec);
             Log.d(TAG, "SAVE SUCCESS");
         } catch (IOException e) {
             Log.d(TAG, e.toString());
